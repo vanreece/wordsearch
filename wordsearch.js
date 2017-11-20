@@ -45,9 +45,15 @@ function sortfunc(x,y) {
   return 0;
 }
 
-function inputChanged(charString) {
+function inputChanged() {
+  var charString = document.getElementById("characters").value;
+  var regex = new RegExp(document.getElementById("regex").value);
+
   findWords(wordlist, charString, function (goodWords) {
-    document.getElementById("results").textContent = goodWords.join("\n");
+    var filteredWords = goodWords.filter(function (word) {
+      return word.match(regex);
+    });
+    document.getElementById("results").textContent = filteredWords.join("\n");
     gw = goodWords;
   })
 }

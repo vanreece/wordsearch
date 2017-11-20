@@ -4,7 +4,8 @@
 </head>
 <body>
     <script src="wordsearch.js"></script>
-    <input type="text" onchange="inputChanged(this.value)">Characters</input>
+    Characters: <input id="characters" type="text" onchange="inputChanged()"/><br>
+    Regex: <input id="regex" type="text" value=".*" onchange="inputChanged()"/><br>
     <br>
     <span id="results" style="white-space:pre-wrap"></span>
 </body>
