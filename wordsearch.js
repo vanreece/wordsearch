@@ -2,29 +2,18 @@ var wordlist = [];
 var wordlistLoaded = false;
 var gw = [];
 
-function getWordlist(callback) {
-  var request = new XMLHttpRequest();
-  request.open('GET', 'scrabble.txt', true);
-  request.send(null);
-  request.onreadystatechange = function () {
-    if (request.readyState === 4 && request.status === 200) {
-      var type = request.getResponseHeader('Content-Type');
-      if (type.indexOf("text") !== 1) {
-        var wordlist = request.responseText.split('\n').slice(0,-1);
-        callback(wordlist);
+function wordInSet(word, charString) {
+  var charsRemaining = charString.slice();
+  for (var i = 0; i < word.length; i++) {
+    var ch = word[i];
+    var index = charsRemaining.indexOf(ch);
+    if (index == -1) {
+      index = charsRemaining.indexOf('.');
+      if (index == -1) {
+        return false;
       }
     }
-  }
-}
-
-function wordInSet(word, charString) {
-  var charSet = new Set(charString.split(''));
-  for (var i = 0; i < word.length; i++) {
-    var letter = word[i];
-    if (!charSet.has(letter)) {
-      return false;
-    }
-    charSet.delete(letter);
+    charsRemaining = charsRemaining.slice(0, index) + charsRemaining.slice(index + 1);
   }
   return true;
 }
@@ -46,8 +35,8 @@ function sortfunc(x,y) {
 }
 
 function inputChanged() {
-  var charString = document.getElementById("characters").value;
-  var regex = new RegExp(document.getElementById("regex").value);
+  var charString = document.getElementById("characters").value.toLowerCase();
+  var regex = new RegExp(document.getElementById("regex").value.toLowerCase());
 
   findWords(wordlist, charString, function (goodWords) {
     var filteredWords = goodWords.filter(function (word) {
@@ -71,13 +60,9 @@ function findWords(wordlist, charString, callback) {
   callback(goodWords);
 }
 
-(function () {
-  getWordlist(function (wl) {
-    wordlist = wl;
-    wordlistLoaded = true;
-    //findWords(wordlist, "rstlne", function (gw) {
-      //console.log(gw);
-      //goodWords = gw;
-    //});
-  });
-})()
+var isNode=new Function("try {return this===global;}catch(e){return false;}");
+
+if (isNode()) {
+  module.exports.wordInSet = wordInSet;
+  module.exports.findWords = findWords;
+}
