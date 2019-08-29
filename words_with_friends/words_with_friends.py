@@ -235,19 +235,7 @@ W  L   w   L  W
 )
 
 
-def board_size(board):
-    column_lengths = {len(column) for column in board}
-    if len(column_lengths) != 1:
-        raise Exception(
-            f"Can't handle board with different length columns, found these: {column_lengths}"
-        )
-    width = len(board)
-    height = column_lengths.pop()
-    return (width, height)
-
-
-wordlist_path = "../vanreece.github.io/scrabble.txt"
-characters = "ohtoail"
+wordlist_path = "scrabble.txt"
 with open(wordlist_path, "r") as wordlist_fd:
     wordlist = [word[:-1].upper() for word in wordlist_fd]
 wordset = set(wordlist)

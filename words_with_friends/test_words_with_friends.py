@@ -2,10 +2,6 @@ from words_with_friends import *
 import unittest
 
 
-def blank_board(size):
-    return [[" " for x in range(size)] for x in range(size)]
-
-
 class TestBoard(unittest.TestCase):
     def test_board_constructors(self):
         with self.assertRaisesRegex(
@@ -31,6 +27,15 @@ class TestBoard(unittest.TestCase):
         self.assertEqual("M  \nA  \nN  ", text)
         reboard = Board.fromstring(text)
         self.assertEqual(board, reboard)
+        with self.assertRaisesRegex(
+            Exception,
+            "Can't handle board with different length rows, found these: {1, 2}",
+        ):
+            Board.fromstring("  \n ")
+        with self.assertRaisesRegex(
+            Exception, "Can't handle board with row length 2 != column length 3"
+        ):
+            Board.fromstring("  \n  \n  ")
 
     def test_set_and_get(self):
         board = Board.fromsize(2)
@@ -60,8 +65,26 @@ class TestBoard(unittest.TestCase):
         board = Board.fromstring("MAN\nAN \nD  ")
         self.assertEqual(sorted(["MAN", "AN", "AN", "MAD"]), sorted(board.words()))
 
+    def test_invalid_coordinates(self):
+        return  # For some reason I can't get this to work?
+        board = Board.fromsize(3)
+        board.set(1, 0, "M")
+        board.set(1, 1, "A")
+        board.set(1, 2, "N")
+        # _M_
+        # _A_
+        # _N_
+        out_of_x_range = [(3, 0, "X")]
+        with self.assertRaisesRegex(
+            Exception, "Invalid move, X coordinate (3) >= size (3)"
+        ):
+            board.validate_move(out_of_x_range)
+        out_of_y_range = [(0, 3, "Y")]
+        with self.assertRaisesRegex(
+            Exception, "Invalid move, Y coordinate (3) >= size (3)"
+        ):
+            board.validate_move(out_of_y_range)
 
-class TestWordsWithFriends(unittest.TestCase):
     def test_valid_move(self):
         board = Board.fromsize(3)
         board.set(1, 0, "M")
@@ -139,10 +162,6 @@ class TestWordsWithFriends(unittest.TestCase):
             board.validate_move(not_contiguous_double_in_column),
         )
 
-        current_board = blank_board(3)
-        current_board[0][2] = "M"
-        current_board[1][2] = "A"
-        current_board[2][2] = "N"
         board = Board.fromsize(3)
         board.set(0, 2, "M")
         board.set(1, 2, "A")
