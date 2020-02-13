@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import json
+import itertools
 
 words_with_friends_tiles = {
     "A": {"number": 9, "points": 1},
@@ -61,7 +62,7 @@ class Board(object):
     @classmethod
     def fromstring(cls, text):
         # Takes a string and makes it into a column major board
-        rows = text.split("\n")
+        rows = text.replace("_", " ").split("\n")
         column_counts = set([len(row) for row in rows])
         if len(column_counts) != 1:
             raise Exception(
@@ -84,7 +85,7 @@ class Board(object):
         return cls(columns)
 
     def to_text(self):
-        return "\n".join(["".join(row) for row in self.rows()])
+        return "\n".join(["".join(row) for row in self.rows()]).replace(" ", "_")
 
     def set(self, x, y, character):
         if x >= self._size or y >= self._size:
@@ -123,7 +124,7 @@ class Board(object):
     def __ne__(self, other):
         return json.dumps(self.columns()) != json.dumps(other.columns())
 
-    def validate_move(self, new_tiles):
+    def validate_move(self, move):
         # Proposed move is just a list of tuples: (X, Y, Letter)
 
         # Needs:
@@ -137,7 +138,7 @@ class Board(object):
         new_rows = set()
         new_cols = set()
         new_board = Board(self._column_major_data)
-        for x, y, letter in new_tiles:
+        for x, y, letter in move:
             if x >= self.size():
                 raise Exception(
                     f"Invalid move, X coordinate ({x}) >= size ({self.size()})"
@@ -156,13 +157,13 @@ class Board(object):
         # 2) Tiles must be in a straight line
         new_row_count = len(new_rows)
         new_col_count = len(new_cols)
-        new_count = len(new_tiles)
+        new_count = len(move)
         if new_row_count > 1 and new_col_count > 1:
             return (False, "Tiles not in a straight line")
 
         if new_count == 1:
             # Single new character, must be contiguous on at least one side with existing tiles
-            x, y, _ = new_tiles[0]
+            x, y, _ = move[0]
             found_neighbor = False
             for neighbor_x, neighbor_y in neighbor_tiles(
                 x, y, self.size(), self.size()
@@ -208,6 +209,44 @@ class Board(object):
                 return (False, f"{word} not found in wordlist")
 
         return (True, "")
+
+    def generate_valid_moves_for_tiles(self, new_tiles):
+        # Need to generate all valid moves
+        # Could start with *all* tile placements and check for validity?
+        # For every row/column:
+        #   Find holes in the row/column, make a vector of those
+        #   For each starting slot in that vector, do a permutation of the tiles of each length
+        valid_moves = []
+        rowcols = []
+        for x, col in enumerate(self.columns()):
+            rowcols.append({"type": "col", "x": x, "data": col})
+        for y, row in enumerate(self.rows()):
+            rowcols.append({"type": "row", "y": y, "data": row})
+        for rowcol in rowcols:
+            empty_vector = []
+            for i, entry in enumerate(rowcol["data"]):
+                if entry == ' ':
+                    empty_vector.append(i)
+            for start_index in range(len(empty_vector)):
+                num_tiles = min(len(empty_vector) - start_index, len(new_tiles))
+                sub_vector = empty_vector[start_index:start_index + num_tiles]
+                for letters in itertools.permutations(new_tiles, num_tiles):
+                    # move = X, Y, Letter
+                    move = []
+                    for i, letter in enumerate(letters):
+                        if rowcol["type"] == "row":
+                            y = rowcol["y"]
+                            x = sub_vector[i]
+                        elif rowcol["type"] == "col":
+                            x = rowcol["x"]
+                            y = sub_vector[i]
+                        else:
+                            raise Exception(f'Found unknown rowcol type: {rowcol["type"]}')
+                        move.append((x, y, letter))
+                    valid, reason = self.validate_move(move)
+                    if valid:
+                        valid_moves.append(move)
+        return valid_moves
 
 
 # W = Triple Word
